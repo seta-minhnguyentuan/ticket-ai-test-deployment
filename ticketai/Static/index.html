@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GSOC SupportAI for Finch</title>
+    <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.14.0/css/all.min.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <style>
+        .hidden { display: none; }
+        .rating {
+            unicode-bidi: bidi-override;
+            direction: rtl;
+        }
+        .rating > label {
+            display: inline-block;
+            cursor: pointer;
+        }
+        .rating a {
+            color: #9e9e9e;
+            font-size: 24px;
+            text-decoration: none;
+            margin-right: 5px;
+        }
+        .rating a:hover, .rating a:hover ~ a, .rating a.active, .rating a.active ~ a {
+            color: #f2da24;
+        }
+        .stars a {
+            display: inline-block;
+            padding-right: 4px;
+            text-decoration: none;
+            margin: 0;
+        }
+        .stars a:after {
+            position: relative;
+            font-size: 18px;
+            font-family: 'FontAwesome', serif;
+            display: block;
+            content: "\f005";
+            color: #9e9e9e;
+        }
+        span {
+            font-size: 0;
+        }
+        .stars a:hover~a:after {
+            color: #9e9e9e !important;
+        }
+        span.active a.active~a:after {
+            color: #9e9e9e;
+        }
+        span:hover a:after {
+            color: blue !important;
+        }
+        span.active a:after,
+        .stars a.active:after {
+            color: blue;
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <div class="container mt-5">
+        <h2 class="text-center mb-5 bg-primary text-white p-2 rounded">{{! SW_INFO }}</h2>
+
+        <!-- Input Section -->
+        <div id="inputSection">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <h4>Query</h4>
+                </div>
+                <div class="col-md-6 text-right">
+                    <label for="deploymentSelector" style="display: inline-block; margin-right: 10px;">Deployment:</label>
+                    <select id="deploymentSelector" class="form-control" style="width: auto; display: inline-block;">
+                        <option value="gpt-4o-gsoc" selected>GPT 4o</option>
+                        <option value="gpt-4-turbo-gsoc">GPT 4 Turbo</option>
+                        <option value="gpt-35-16k-auto">GPT 3.5 16K Turbo</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <textarea id="queryBox" class="form-control" rows="5" placeholder="Paste the email query here..."></textarea>
+            </div>
+
+            <div class="row">
+                <div class="col-md-2">
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="responseType" id="agentRadio" value="agent" checked>
+                        <label class="form-check-label" for="agentRadio">Agent</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="responseType" id="customerRadio" value="customer">
+                        <label class="form-check-label" for="customerRadio">Customer</label>
+                    </div>
+                </div>
+                <div class="col-md-1 col-sm-2 col-xs-12">
+                    <label for="nameInput">Agent eMail:</label>
+                </div>
+                <div class="col-md-3 col-sm-2 col-xs-12">
+                    <input type="text" id="nameInput" class="form-control" maxlength="35" value="{{! agent_email }}">
+                </div>
+                <div class="col-md-1 col-sm-2 col-xs-12">
+                    <label for="ticketNumberInput">Ticket #:</label>
+                </div>
+                <div class="col-md-2 col-sm-2 col-xs-12">
+                    <input type="text" id="ticketNumberInput" class="form-control" maxlength="35">
+                </div>
+                <div class="col-md-3 col-sm-3 col-xs-12 text-right">
+                    <button onclick="submitQuery()" class="btn btn-primary">Submit</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading Popup -->
+        <div id="loadingPopup" class="hidden mt-3">
+            <div class="alert alert-info" role="alert">
+                Processing...
+            </div>
+        </div>
+
+        <!-- Output Section -->
+        <div id="outputSection" class="hidden mt-3">
+            <a data-toggle="collapse" href="#vehicleSubscriptionInfo" role="button" aria-expanded="false" aria-controls="vehicleSubscriptionInfo">
+                Vehicle / Subscription Info
+            </a>
+            <div class="collapse" id="vehicleSubscriptionInfo">
+                <div class="form-group">
+                    <textarea id="vehicleSubscriptionResponse" class="form-control" rows="20" readonly></textarea>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <h4 class="mt-4">Response</h4>
+                <div id="customerResponse" class="form-control" style="height: auto; min-height: 100px;"></div>
+            </div>
+
+            <h4 class="mt-4">Feedback</h4>
+            <div class="form-group">
+                <div class="rating">
+                    <input type="hidden" id="rating" value="">
+                    <a class="star-5" href="#" data-value="5"><i class="fas fa-star"></i></a>
+                    <a class="star-4" href="#" data-value="4"><i class="fas fa-star"></i></a>
+                    <a class="star-3" href="#" data-value="3"><i class="fas fa-star"></i></a>
+                    <a class="star-2" href="#" data-value="2"><i class="fas fa-star"></i></a>
+                    <a class="star-1" href="#" data-value="1"><i class="fas fa-star"></i></a>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <textarea id="commentBox" class="form-control" rows="2" placeholder="Add a comment..."></textarea>
+            </div>
+
+            <div class="row">
+                <div class="col-md-8 col-sm-8 col-xs-12">
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="followupType" id="firstResponse" value="1">
+                        <label class="form-check-label" for="firstResponse">First Time</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="followupType" id="followupResponse" value="2">
+                        <label class="form-check-label" for="followupResponse">Follow Up</label>
+                    </div>
+                </div>
+
+                <div class="col-md-4 col-sm-4 col-xs-12 text-right">
+                    <button onclick="submitRating()" class="btn btn-success">Submit Rating</button>
+                </div>
+            </div>
+
+            <a data-toggle="collapse" href="#debugInfo" role="button" aria-expanded="false" aria-controls="debugInfo" class="mt-3 d-block">
+                Debug Info
+            </a>
+            <div class="collapse" id="debugInfo">
+                <div class="form-group">
+                    <textarea id="debugResponse" class="form-control" rows="3" readonly></textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function submitQuery() {
+            document.getElementById('loadingPopup').classList.remove('hidden');
+            let queryText = document.getElementById('queryBox').value;
+            let responseType = document.querySelector('input[name="responseType"]:checked').value;
+            let deployment = document.getElementById('deploymentSelector').value;
+            let agentName = document.getElementById('nameInput').value;
+            let ticketNumber = document.getElementById('ticketNumberInput').value;
+
+            document.querySelector('button[onclick="submitQuery()"]').disabled = true;
+
+            fetch('/process_ticket', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ query: queryText, responseType: responseType, deployment: deployment, agentName: agentName, ticketNumber: ticketNumber })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error("Network response was not ok");
+                }
+                return response.json();
+            })
+            .then(data => {
+                document.getElementById('customerResponse').innerHTML = data.customerResponse;
+                document.getElementById('vehicleSubscriptionResponse').value = data.vehicleSubscriptionResponse;
+                
+                // Format debug information
+                let debugText = data.debugResponse;
+                if (data.processing_time) {
+                    debugText += "\n\nProcessing Time: " + data.processing_time + " seconds";
+                }
+                if (data.run_time) {
+                    debugText += "\nTotal Run Time: " + data.run_time + " seconds";
+                }
+                if (data.SW_INFO) {
+                    debugText += "\nSystem Version: " + data.SW_INFO;
+                }
+                
+                document.getElementById('debugResponse').value = debugText;
+                document.getElementById('loadingPopup').classList.add('hidden');
+                document.getElementById('outputSection').classList.remove('hidden');
+                window.sessionId = data.sessionId;
+            })
+            .catch(error => {
+                console.error('There was a problem with the fetch operation:', error);
+                alert('There was an error processing your request. Please try again later.');
+            })
+            .finally(() => {
+                document.querySelector('button[onclick="submitQuery()"]').disabled = false;
+            });
+        }
+
+        function submitRating() {
+            document.getElementById('loadingPopup').classList.remove('hidden');
+            let rating = document.getElementById('rating').value;
+            let name = document.getElementById('nameInput').value;
+            let ticket = document.getElementById('ticketNumberInput').value;
+            let comment = document.getElementById('commentBox').value;
+            let selectedElement = document.querySelector('input[name="followupType"]:checked');
+            let followupType = selectedElement ? selectedElement.value : "0";
+
+            document.querySelector('button[onclick="submitRating()"]').disabled = true;
+
+            fetch('/process_rating', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: name, ticket: ticket, rating: rating, comment: comment, followup: followupType, sessionID: window.sessionId })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error("Network response was not ok");
+                }
+            })
+            .then(() => {
+                document.getElementById('loadingPopup').classList.add('hidden');
+                document.getElementById('outputSection').classList.add('hidden');
+                document.getElementById('inputSection').classList.remove('hidden');
+            })
+            .catch(error => {
+                console.error('There was a problem with the fetch operation:', error);
+                alert('There was an error submitting your rating. Please try again later.');
+            })
+            .finally(() => {
+                document.querySelector('button[onclick="submitRating()"]').disabled = false;
+            });
+        }
+
+        $('.rating a').on('click', function(e) {
+            e.preventDefault();
+            $('.rating a').removeClass('active');
+            $(this).addClass('active');
+            let selectedRating = $(this).data('value');
+            $('#rating').val(selectedRating);
+            console.log("Selected Rating:", selectedRating);
+        });
+    </script>
+</body>
+</html>
