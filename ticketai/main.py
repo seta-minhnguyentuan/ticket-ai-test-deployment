@@ -235,8 +235,8 @@ if __name__ == '__main__':
     print(f"Static folder: {config['static_folder']}")
     print(f"File directory: {os.getcwd()}")
     print(f"Static folder: {config['static_folder']}")
-    print("Starting API server on port 8080...")
-    run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 8080)), debug=True)
+    print("Starting API server on port 5010...")
+    run(app, host='0.0.0.0', port=int(os.environ.get("PORT", 5010)), debug=True)
 
 
 # # TicketAI for Finch (v1.11.0)
