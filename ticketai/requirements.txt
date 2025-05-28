@@ -1,0 +1,8 @@
+openai==0.28
+bottle
+markdown
+google-auth
+google-cloud-bigquery
+gunicorn
+google-cloud-storage
+google-cloud-secret-manager
